@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
-import matplotlib as plt
-
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 from pandas.io.formats.format import return_docstring
 
 csv_path = "Music-Databases/Light_Music_Database.csv"
@@ -19,7 +19,7 @@ class MultinomialNaiveBayes:
         genres = {}
         total = len(y_train)
         for genre in y_train:
-            if (genre not in genres):
+            if genre not in genres:
                 genres[genre] = 1
             else:
                 genres[genre] += 1
@@ -30,7 +30,7 @@ class MultinomialNaiveBayes:
         for i in range (0, len(x_train)):
             l = x_train[i]
             genre = y_train[i]
-            if(genre not in self.conditionals):
+            if genre not in self.conditionals:
                 self.conditionals[genre] = {}
             for word in l:
                 self.vocabulary.add(word)
@@ -41,9 +41,17 @@ class MultinomialNaiveBayes:
 
         voc_size = len(self.vocabulary)
         for genre in self.conditionals:
-            total_words_genre = sum(self.conditionals[genre]) + self.alpha
+
+            total_words_genre = 0
+
             for word in self.conditionals[genre]:
-                self.conditionals[genre][word] = self.conditionals[genre][word] / (total_words_genre + voc_size * self.alpha)
+                total_words_genre += self.conditionals[genre][word]
+
+            for word in self.vocabulary:
+                count_genre = self.alpha
+                if word in self.conditionals[genre]:
+                    count_genre += self.conditionals[genre][word]
+                self.conditionals[genre][word] = count_genre / (total_words_genre + voc_size * self.alpha)
 
 
 
@@ -62,16 +70,17 @@ class MultinomialNaiveBayes:
                     vocabulary[word] += 1
             genre_prob = {}
             for genre in self.conditionals:
-                prob = self.a_priori[genre]
+                prob = np.log(self.a_priori[genre])
                 for word in vocabulary:
                     if word in self.vocabulary:
                         prob += vocabulary[word] * np.log(self.conditionals[genre][word])
                 genre_prob[genre] = prob
-            maxx = -1
+            maxx = -np.inf
             final_genre = ""
             for genre in genre_prob:
-                if genre_prob > maxx:
-                    maxx = genre_prob, final_genre = genre
+                if genre_prob[genre] > maxx:
+                    maxx = genre_prob[genre]
+                    final_genre = genre
             y_test.append(final_genre)
         return y_test
 
@@ -80,7 +89,7 @@ class MultinomialNaiveBayes:
         genres_accuracy = {}
         total = len(y_test)
         acc = 0
-        for result, i in zip(y_result, (0, len(y_test))):
+        for i, result in enumerate(y_result):
             correct = y_test[i]
             if correct not in genres_accuracy:
                 genres_accuracy[correct] = {}
@@ -88,9 +97,9 @@ class MultinomialNaiveBayes:
                 genres_accuracy[correct][result] = 1
             else:
                 genres_accuracy[correct][result] += 1
-            if result is not correct:
+            if result == correct:
                 acc += 1
-        print("Model Accuracy: ", acc / total * 100, "%")
+        return (genres_accuracy, acc / total)
 
 
 
@@ -121,14 +130,60 @@ def tokens_text(text):
 def preprocess_data(data):
     data['Tokens'] = data['Lyrics'].apply(tokens_text)
 
-def voc_of_data(data):
-    voc = {}
-    it = 0
 
-    return voc
+
+def plot_confusion_from_dict(genres_accuracy, title='Confusion matrix (counts)', cmap='viridis', figsize=(12,8)):
+    # 1) construim lista completă de etichete (true + predicted)
+    labels = sorted(set(list(genres_accuracy.keys()) +
+                        [p for preds in genres_accuracy.values() for p in preds.keys()]))
+    idx = {lab: i for i, lab in enumerate(labels)}
+
+    # 2) construim matricea (n_true x n_pred)
+    n = len(labels)
+    M = np.zeros((n, n), dtype=int)
+    for true_label, preds in genres_accuracy.items():
+        for pred_label, count in preds.items():
+            M[idx[true_label], idx[pred_label]] = count
+
+    # 3) desenăm cu matplotlib
+    fig, ax = plt.subplots(figsize=figsize)
+    im = ax.imshow(M, interpolation='nearest', cmap=cmap)
+    cbar = fig.colorbar(im, ax=ax)
+    cbar.ax.set_ylabel('Count', rotation=270, labelpad=15)
+
+    # 4) etichete pe axe
+    ax.set_xticks(np.arange(n))
+    ax.set_yticks(np.arange(n))
+    ax.set_xticklabels(labels, rotation=45, ha='right')
+    ax.set_yticklabels(labels)
+    ax.set_xlabel('Predicted genre')
+    ax.set_ylabel('True genre')
+    ax.set_title(title)
+
+    # 5) annotări (numere în celule)
+    maxval = M.max() if M.size else 1
+    for i in range(n):
+        for j in range(n):
+            color = 'white' if M[i, j] > maxval / 2 else 'black'
+            ax.text(j, i, str(M[i, j]), ha='center', va='center', color=color, fontsize=9)
+
+    plt.tight_layout()
+    plt.show()
+
+
+
 
 
 data = read_csv()
 preprocess_data(data)
-#vocabulary = voc_of_data(data)
-print(data.items)
+
+lyrics, genres = data['Tokens'].tolist(), data['Genre'].tolist()
+X_train, X_test, y_train, y_test = train_test_split(lyrics, genres, test_size=0.2, random_state=42)
+
+model = MultinomialNaiveBayes()
+model.train(X_train, y_train)
+print("")
+genres_accuracy, accuracy = model.evaluate(X_test, y_test)
+plot_confusion_from_dict(genres_accuracy)
+
+print("Model Accuracy: ", accuracy * 100, "%")
