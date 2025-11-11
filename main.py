@@ -5,9 +5,32 @@ import data_processing as dt
 from sklearn.model_selection import train_test_split
 
 
-csv_path = "Music-Datasets/Heavy_Music_Dataset1.csv"
+csv_path = "Music-Datasets/Light_Music_Dataset.csv"
+dataset = "Light"
+#csv_path = "Music-Datasets/Light_Music_Dataset.csv"
+#csv_path = "Heavy"
 
-
+def percents_of_each_genre(dt_set):
+    if dt_set == "Heavy":
+        aux_genres_max = {
+                "Metal": 0.47,
+                "rock": 0.81,
+                "rap": 0.92,
+                "country": 0.64,
+                "pop": 0.78
+            }
+        return aux_genres_max
+    else:
+        aux_genres_max = {
+                "blues": 0.47,
+                "country": 0.81,
+                "jazz": 0.92,
+                "pop": 0.64,
+                "reggae": 0.78,
+                "rock": 0.67,
+                "hip hop": 0.97
+            }
+        return aux_genres_max
 
 def plot_confusion_from_dict_proportions(genres_accuracy,
                                          title='Confusion matrix (proportions)',
@@ -79,24 +102,35 @@ def create_false_imbalance(lyrics, genres, procent_per_genre):
     max_genre = dt.afis_details_csv(data, ["Genre"], False)
     for genre in max_genre:
         max_genre[genre] *= procent_per_genre[genre]
-    X_train, X_test, y_train, y_test = [], [], [], []
+    x_train, x_test, y_train, y_test = [], [], [], []
     for tokens, tip in zip(lyrics, genres):
         if max_genre[tip] > 0:
-            X_train.append(tokens)
+            x_train.append(tokens)
             y_train.append(tip)
             max_genre[tip] -= 1
         else:
-            X_test.append(tokens)
+            x_test.append(tokens)
             y_test.append(tip)
-    return X_train, X_test, y_train, y_test
+    return x_train, x_test, y_train, y_test
+
+def train_model(t_model, imbalance, t_genres_max):
+    lyrics, genres = data['Tokens'].tolist(), data['Genre'].tolist()
+    if imbalance:
+        x_train, x_test, y_train, y_test = create_false_imbalance(lyrics, genres, t_genres_max)
+    else:
+        x_train, x_test, y_train, y_test = train_test_split(lyrics, genres, test_size=0.2, random_state=42)
+    t_model.train(x_train, y_train)
+
+    genres_accuracy, accuracy = model.evaluate(x_test, y_test)
+    plot_confusion_from_dict_proportions(genres_accuracy)
 
 
 def start_testing():
     text = ""
     while text != 'EOF':
         text = input()
-        tokens = dt.tokens_text(text)
-        genre = model.predict([tokens])
+        lyrics = dt.tokens_text(text)
+        genre = model.predict([lyrics])
         for res in genre:
             print(res)
 
@@ -105,48 +139,12 @@ def start_testing():
 
 data = dt.read_csv(csv_path, ["Genre", "Lyrics"])
 dt.afis_details_csv(data, ["Genre"])
-
 dt.preprocess_data(data, "Lyrics")
+#dt.output_to_file(data)
+genres_max = percents_of_each_genre(dataset)
 
 
-'''
-output_file_name = 'employee_data.csv'
-
-# Write the DataFrame to a CSV file
-data.to_csv(output_file_name, index=False)
-# index=False prevents pandas from writing the row indices (0, 1, 2, 3...)
-# as an unnamed first column in the CSV file.
-
-print(f"\nSuccessfully created '{output_file_name}'")
-
-
-'''
-
-
-lyrics, genres = data['Tokens'].tolist(), data['Genre'].tolist()
-genres_max = {
-    "Metal": 0.47,
-    "rock": 0.81,
-    "rap": 0.92,
-    "country": 0.64,
-    "pop": 0.78
-}
-genres_max1 = {
-    "blues": 0.47,
-    "country": 0.81,
-    "jazz": 0.92,
-    "pop": 0.64,
-    "reggae": 0.78,
-    "rock": 0.67,
-    "hip hop": 0.97
-}
-#X_train, X_test, y_train, y_test = create_false_imbalance(lyrics, genres, genres_max)
-X_train, X_test, y_train, y_test = train_test_split(lyrics, genres, test_size=0.2, random_state=42)
 model = mnb.MultinomialNaiveBayes()
-model.train(X_train, y_train)
-print("")
-
-genres_accuracy, accuracy = model.evaluate(X_test, y_test)
-plot_confusion_from_dict_proportions(genres_accuracy)
+train_model(model, False, genres_max)
 
 start_testing()

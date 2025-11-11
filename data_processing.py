@@ -1,5 +1,3 @@
-import time
-from string import punctuation
 
 import pandas as pd
 
@@ -50,5 +48,10 @@ def preprocess_data(data, column = "Lyrics"):
     data['Tokens'] = data[column].apply(tokens_text)
     print("---------------------------------------------------------------")
 
+
+def output_to_file(data, output_file_name = "tokenized_data.csv"):
+    data.to_csv(output_file_name, index=False)
+    print(f"\nSuccessfully created '{output_file_name}'")
+    print("---------------------------------------------------------------")
 
 
