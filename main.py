@@ -4,6 +4,7 @@ import MultinomialNBayes as mnb
 import data_processing as dt
 from sklearn.model_selection import train_test_split
 
+
 csv_path = "Music-Datasets/Heavy_Music_Dataset1.csv"
 
 
@@ -74,6 +75,21 @@ def plot_confusion_from_dict_proportions(genres_accuracy,
     plt.tight_layout()
     plt.show()
 
+def create_false_imbalance(lyrics, genres, procent_per_genre):
+    max_genre = dt.afis_details_csv(data, ["Genre"], False)
+    for genre in max_genre:
+        max_genre[genre] *= procent_per_genre[genre]
+    X_train, X_test, y_train, y_test = [], [], [], []
+    for tokens, tip in zip(lyrics, genres):
+        if max_genre[tip] > 0:
+            X_train.append(tokens)
+            y_train.append(tip)
+            max_genre[tip] -= 1
+        else:
+            X_test.append(tokens)
+            y_test.append(tip)
+    return X_train, X_test, y_train, y_test
+
 
 def start_testing():
     text = ""
@@ -92,9 +108,40 @@ dt.afis_details_csv(data, ["Genre"])
 
 dt.preprocess_data(data, "Lyrics")
 
-lyrics, genres = data['Tokens'].tolist(), data['Genre'].tolist()
-X_train, X_test, y_train, y_test = train_test_split(lyrics, genres, test_size=0.2, random_state=42)
 
+'''
+output_file_name = 'employee_data.csv'
+
+# Write the DataFrame to a CSV file
+data.to_csv(output_file_name, index=False)
+# index=False prevents pandas from writing the row indices (0, 1, 2, 3...)
+# as an unnamed first column in the CSV file.
+
+print(f"\nSuccessfully created '{output_file_name}'")
+
+
+'''
+
+
+lyrics, genres = data['Tokens'].tolist(), data['Genre'].tolist()
+genres_max = {
+    "Metal": 0.47,
+    "rock": 0.81,
+    "rap": 0.92,
+    "country": 0.64,
+    "pop": 0.78
+}
+genres_max1 = {
+    "blues": 0.47,
+    "country": 0.81,
+    "jazz": 0.92,
+    "pop": 0.64,
+    "reggae": 0.78,
+    "rock": 0.67,
+    "hip hop": 0.97
+}
+#X_train, X_test, y_train, y_test = create_false_imbalance(lyrics, genres, genres_max)
+X_train, X_test, y_train, y_test = train_test_split(lyrics, genres, test_size=0.2, random_state=42)
 model = mnb.MultinomialNaiveBayes()
 model.train(X_train, y_train)
 print("")

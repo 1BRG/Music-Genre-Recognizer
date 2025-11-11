@@ -6,7 +6,7 @@ import pandas as pd
 
 
 
-def afis_details_csv(data, details):
+def afis_details_csv(data, details, afis = True):
     for det in details:
         infos = {}
         print(f"Details about {det}:")
@@ -16,9 +16,10 @@ def afis_details_csv(data, details):
                 infos[category] += 1
             else:
                 infos[category] = 1
-        for category in infos:
-            print(category, ": ", infos[category])
-
+        if(afis == True):
+            for category in infos:
+                print(category, ": ", infos[category])
+        return infos
 
 
 def read_csv(csv_path, cols, idx_col = "Id"):
@@ -31,17 +32,18 @@ def read_csv(csv_path, cols, idx_col = "Id"):
 
 import re
 import string
-stop_words = r"\b(?:i|me|my|myself|we|our|ours|ourselves|you|your|yours|yourself|yourselves|he|him|his|himself|she|her|hers|herself|it|its|itself|they|them|their|theirs|themselves|what|which|who|whom|this|that|these|those|am|is|are|was|were|be|been|being|have|has|had|having|do|does|did|doing|a|an|the|and|but|if|or|because|as|until|while|of|at|by|for|with|about|against|between|into|through|during|before|after|above|below|to|from|up|down|in|out|on|off|over|under|again|further|then|once|here|there|when|where|why|how|all|any|both|each|few|more|most|other|some|such|no|nor|not|only|own|same|so|than|too|very|s|t|can|will|just|don|should|now)\b"
+
+stop_words = re.compile(r"\b(?:i|me|my|myself|we|our|ours|ourselves|you|your|yours|yourself|yourselves|he|him|his|himself|she|her|hers|herself|it|its|itself|they|them|their|theirs|themselves|what|which|who|whom|this|that|these|those|am|is|are|was|were|be|been|being|have|has|had|having|do|does|did|doing|a|an|the|and|but|if|or|because|as|until|while|of|at|by|for|with|about|against|between|into|through|during|before|after|above|below|to|from|up|down|in|out|on|off|over|under|again|further|then|once|here|there|when|where|why|how|all|any|both|each|few|more|most|other|some|such|no|nor|not|only|own|same|so|than|too|very|s|t|can|will|just|don|should|now)\b")
 def tokens_text(text, afis = False):
     text = re.sub(r'\[.*?\]', '', text)
     text = text.lower()
-    text = re.sub(stop_words, '', text)
     text = text.translate(str.maketrans('', '', string.punctuation))
+    text = re.sub(stop_words, '', text)
     text = re.sub(r'\s+', ' ', text).strip()
-    str_list = text.split()
+    tokens = text.split()
     if afis:
         print(text)
-    return str_list
+    return tokens
 
 def preprocess_data(data, column = "Lyrics"):
     print("Preprocessing the data...")
