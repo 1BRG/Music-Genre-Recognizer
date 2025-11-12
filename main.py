@@ -4,11 +4,17 @@ import MultinomialNBayes as mnb
 import data_processing as dt
 from sklearn.model_selection import train_test_split
 
-
-csv_path = "Music-Datasets/Light_Music_Dataset.csv"
-dataset = "Light"
+#link to database:https://www.kaggle.com/datasets/saurabhshahane/music-dataset-1950-to-2019?select=tcc_ceds_music.csv
+#change columns name to Lyrics and Genre
+#included in project
 #csv_path = "Music-Datasets/Light_Music_Dataset.csv"
-#csv_path = "Heavy"
+#dataset = "Light"
+
+#link to database:https://www.kaggle.com/datasets/d3stron/english-music-lyrics-5-genres-500k?select=cleaned_train_lyrics.csv
+#change columns name to Lyrics and Genre
+#not included because of its size
+csv_path = "Music-Datasets/Heavy_Music_Dataset1.csv"
+dataset = "Heavy"
 
 def percents_of_each_genre(dt_set):
     if dt_set == "Heavy":
@@ -127,6 +133,7 @@ def train_model(t_model, imbalance, t_genres_max):
 
 def start_testing():
     text = ""
+    print("Starting the testing, input your lyrics in console all on one line")
     while text != 'EOF':
         text = input()
         lyrics = dt.tokens_text(text)
