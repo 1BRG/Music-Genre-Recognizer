@@ -5,16 +5,16 @@ import data_processing as dt
 from sklearn.model_selection import train_test_split
 
 #link to database:https://www.kaggle.com/datasets/saurabhshahane/music-dataset-1950-to-2019?select=tcc_ceds_music.csv
-#change columns name to Lyrics and Genre
+#change columns name to Lyrics and Genre, and rename it to Light_Music_Dataset
 #included in project
-#csv_path = "Music-Datasets/Light_Music_Dataset.csv"
-#dataset = "Light"
+csv_path = "Music-Datasets/Light_Music_Dataset.csv"
+dataset = "Light"
 
 #link to database:https://www.kaggle.com/datasets/d3stron/english-music-lyrics-5-genres-500k?select=cleaned_train_lyrics.csv
-#change columns name to Lyrics and Genre
+#change columns name to Lyrics and Genre and rename it to Heavy_Music_Dataset1.csv
 #not included because of its size
-csv_path = "Music-Datasets/Heavy_Music_Dataset1.csv"
-dataset = "Heavy"
+#csv_path = "Music-Datasets/Heavy_Music_Dataset1.csv"
+#dataset = "Heavy"
 
 def percents_of_each_genre(dt_set):
     if dt_set == "Heavy":
