@@ -1,4 +1,3 @@
-
 # Documentația Proiectului: Clasificator Naive Bayes Multinomial pentru Predicția Genului Muzical
 
 **Autor:** Bălăceanu Rafael Gabriel
@@ -10,20 +9,21 @@
 Pentru clasificarea genurilor muzicale, formula este:
 
 $$
-P(\text{Gen} | \text{Versuri}) = {P(\text{Versuri} | \text{Gen}) \times P(\text{Gen})}
+P(\text{Gen} | \text{Versuri}) = \frac{P(\text{Versuri} | \text{Gen}) \times P(\text{Gen})}{P(\text{Versuri})}
 $$
 
 Unde:
 - **P(Gen | Versuri)**: probabilitatea ca o piesă să aparțină unui anumit *Gen*, având în vedere *Versurile* sale. Acesta este rezultatul pe care dorim să-l calculăm.
 - **P(Versuri | Gen)**: probabilitatea de a întâlni *Versurile* date într-o piesă dintr-un anumit *Gen*.
 - **P(Gen)** este probabilitatea a priori: probabilitatea generală ca o piesă să aparțină unui anumit *Gen* în setul nostru de date.
+- **P(Versuri)** este probabilitatea de apariție a versurilor. Aceasta este constantă, deci o putem elimina.
 
 ## Ipoteza "Naivă"
 
-Modelul face o presupunere "naivă" de independență condițională: consideră că prezența fiecărui cuvânt în versuri este independentă de prezența celorlalte cuvinte. Astfel probabilitatea unei piese să aparțină unui anumit gen muzical este probabilitatea fiecărui cuvânt să aparțină acestuia.
+Modelul face o presupunere "naivă" de independență condițională: consideră că prezența fiecărui cuvânt în versuri este independentă de prezența celorlalte cuvinte. Astfel, probabilitatea ca o piesă să aparțină unui anumit gen muzical este probabilitatea fiecărui cuvânt să aparțină acestuia.
 
 $$
-P(\text{Versuri} | \text{Gen}) \approx P(\text{Gen})\prod_{i=1}^{n} P(\text{cuvânt}_i | \text{Gen})
+P(\text{Versuri} | \text{Gen}) = P(\text{Gen})\prod_{i=1}^{n} P(\text{cuvânt}_i | \text{Gen})
 $$
 
 ## Probabilități Logaritmice
@@ -31,18 +31,18 @@ $$
 Înmulțirea multor probabilități mici (între 0 și 1) poate duce la erori de calcul (underflow numeric). Pentru a evita acest lucru, implementarea calculează suma logaritmilor probabilităților:
 
 $$
-\log(P(\text{Versuri} | \text{Gen})) \approx \log(P(\text{Gen})\prod_{i=1}^{n} P(\text{cuvânt}_i | \text{Gen}))
+\log(P(\text{Versuri} | \text{Gen})) = \log(P(\text{Gen})\prod_{i=1}^{n} P(\text{cuvânt}_i | \text{Gen}))
 $$
 
 $$
-\log(P(\text{Gen} | \text{Versuri})) \approx \log(P(\text{Gen})) + \sum_{i=1}^{n} \log(P(\text{cuvânt}_i | \text{Gen}))
+\log(P(\text{Gen} | \text{Versuri})) = \log(P(\text{Gen})) + \sum_{i=1}^{n} \log(P(\text{cuvânt}_i | \text{Gen}))
 $$
 
 Genul cu cea mai mare probabilitate logaritmică este ales ca predicție finală.
 
 ## Netezirea Laplace (Aditivă)
 
-Pentru a gestiona cuvintele care apar în setul de test dar limitate la anumite genuri (ceea ce ar duce la o probabilitate de zero pentru celelalte genuri), se aplică netezirea Laplace. O valoare mică, **alpha** (setată în cod la 1.0), se adaugă la numărătorul fiecărui cuvânt, prevenind probabilitățile nule.
+Pentru a gestiona cuvintele care apar în setul de test, dar sunt limitate la anumite genuri (ceea ce ar duce la o probabilitate de zero pentru celelalte genuri), se aplică netezirea Laplace. O valoare mică, **alpha** (setată în cod la 1.0), se adaugă la numărătorul fiecărui cuvânt, prevenind probabilitățile nule.
 
 # Structura Codului și Funcțiile Principale
 
@@ -53,7 +53,7 @@ Acest fișier conține toate funcțiile legate de încărcarea, curățarea și 
 
 - **`read_csv(csv_path, cols, ...)`**: Citește coloanele specificate (`"Genre"`, `"Lyrics"`) din fișierul CSV într-un DataFrame pandas și elimină rândurile cu date lipsă.
 - **`tokens_text(text, ...)`**: Funcția centrală de procesare a textului. Primește textul brut (versurile) și realizează următoarele operațiuni:
-  1. Elimină caracterele speciale și conținutul din parantezele drepte (ex: "`[Chorus]` ...") specifice textelor provenite din site-ul Genius.
+  1. Elimină caracterele speciale și conținutul din parantezele drepte (ex: "`[Chorus]`") specifice textelor provenite de pe site-ul Genius.
   2. Convertește textul la litere mici.
   3. Elimină punctuația.
   4. Elimină cuvintele comune din limba engleză ("stop words").
@@ -74,7 +74,7 @@ Acest modul conține implementarea clasificatorului.
 Acesta este scriptul principal care leagă toate componentele.
 - **Încărcarea și Preprocesarea Datelor**: Citește fișierul `Light_Music_Dataset.csv` / `Heavy_Music_Dataset1.csv` și preprocesează versurile.
 - **Antrenarea și Evaluarea Modelului**:
-  - **Opțiunea 1**: Împarte setul de date într-un set de antrenament (80%) și unul de test (20%) folosind `train_test_split`.
+  - **Opțiunea 1** (default): Împarte setul de date într-un set de antrenament (80%) și unul de test (20%) folosind `train_test_split`.
   - **Opțiunea 2**: Împarte setul de date într-un set de antrenament în care fiecare gen are o anumită proporție din setul original și unul de test, restul datelor rămase, folosind `create_false_imbalance(lyrics, genres, procent_per_genre)`.
   - Inițializează, antrenează și evaluează modelul `MultinomialNaiveBayes`.
 - **`plot_confusion_from_dict_proportions(...)`**: Vizualizează rezultatele evaluării sub forma unei matrici de confuzie. (Cod generat cu ChatGPT)
@@ -82,7 +82,7 @@ Acesta este scriptul principal care leagă toate componentele.
 
 # Instrucțiuni de Utilizare
 1.  **Cerințe preliminare**: Asigurați-vă că aveți Python instalat.
-2.  **Setul de date**: Fișierul folosit `Light_Music_Dataset.csv` sau `Heavy_Music_Dataset1.csv` trebuie să se afle într-un folder numit `Music-Datasets` (sursele fișierelor de date pot fi găsite la începutul fișierului main.py pentru a putea fi descărcate).
+2.  **Setul de date**: Fișierul folosit `Light_Music_Dataset.csv` sau `Heavy_Music_Dataset1.csv` trebuie să se afle într-un folder numit `Music-Datasets` (sursele fișierelor de date pot fi găsite la începutul fișierului `main.py` pentru a putea fi descărcate).
 3.  **Instalarea Dependințelor**: Deschideți un terminal și rulați următoarea comandă:
     ```bash
     pip install -r requirements.txt
@@ -108,13 +108,13 @@ Preprocessing the data...
 ---------------------------------------------------------------
 Training on  399977  datas
 Calculating the a priori probability:
-country: 0.19959397665365758
-Metal: 0.19994399677981484
-rock: 0.20009900569282735
-pop: 0.20018651072436666
-rap: 0.20017651014933358
+country: 0.19959397665365758 
+Metal: 0.19994399677981484 
+rock: 0.20009900569282735 
+pop: 0.20018651072436666 
+rap: 0.20017651014933358 
 ---------------------------------------------------------------
-Calculating the conditioned probability and finding the vocabulary:
+Calculating the conditioned probability and finding the vocabulary: 
 Size of vocabulary:  432670
 ---------------------------------------------------------------
 ---------------------------------------------------------------
@@ -127,7 +127,7 @@ Evaluate the model accuracy on 99995 datas:
 *Graficul matricii de confuzie*
 
 ## Sesiune Interactivă
-Programul va aștepta acum inputul dumneavoastră pe o singură linie (se poate folosi programul oneLineLyrics.cpp). Pentru a ieși, tastați `EOF` și apăsați Enter.
+Programul va aștepta acum inputul dumneavoastră pe o singură linie (se poate folosi programul `oneLineLyrics.cpp`). Pentru a ieși, tastați `EOF` și apăsați Enter.
 ```shell
 > Darkness, imprisoning me All that I see, absolute horror
 metal
