@@ -1,102 +1,104 @@
-# Documentația Proiectului: Clasificator Naive Bayes Multinomial pentru Predicția Genului Muzical
 
-**Autor:** Bălăceanu Rafael Gabriel
+
+# Project Documentation: Multinomial Naive Bayes Classifier for Music Genre Prediction
+
+**Author:** Bălăceanu Rafael Gabriel
 
 ---
 
-# Modelul Matematic: Naive Bayes Multinomial
+# Mathematical Model: Multinomial Naive Bayes
 
-Pentru clasificarea genurilor muzicale, formula este:
-
-$$
-P(\text{Gen} | \text{Versuri}) = \frac{P(\text{Versuri} | \text{Gen}) \times P(\text{Gen})}{P(\text{Versuri})}
-$$
-
-Unde:
-- **P(Gen | Versuri)**: probabilitatea ca o piesă să aparțină unui anumit *Gen*, având în vedere *Versurile* sale. Acesta este rezultatul pe care dorim să-l calculăm.
-- **P(Versuri | Gen)**: probabilitatea de a întâlni *Versurile* date într-o piesă dintr-un anumit *Gen*.
-- **P(Gen)** este probabilitatea a priori: probabilitatea generală ca o piesă să aparțină unui anumit *Gen* în setul nostru de date.
-- **P(Versuri)** este probabilitatea de apariție a versurilor. Aceasta este constantă, deci o putem elimina.
-
-## Ipoteza "Naivă"
-
-Modelul face o presupunere "naivă" de independență condițională: consideră că prezența fiecărui cuvânt în versuri este independentă de prezența celorlalte cuvinte. Astfel, probabilitatea ca o piesă să aparțină unui anumit gen muzical este probabilitatea fiecărui cuvânt să aparțină acestuia.
+For classifying music genres, the formula is:
 
 $$
-P(\text{Versuri} | \text{Gen}) = P(\text{Gen})\prod_{i=1}^{n} P(\text{cuvânt}_i | \text{Gen})
+P(\text{Genre} | \text{Lyrics}) = \frac{P(\text{Lyrics} | \text{Genre}) \times P(\text{Genre})}{P(\text{Lyrics})}
 $$
 
-## Probabilități Logaritmice
+Where:
+- **P(Genre | Lyrics)**: the probability that a song belongs to a certain *Genre*, given its *Lyrics*. This is the result we want to calculate.
+- **P(Lyrics | Genre)**: the probability of encountering the given *Lyrics* in a song belonging to a certain *Genre*.
+- **P(Genre)** is the prior probability: the overall probability that a song belongs to a certain *Genre* within our dataset.
+- **P(Lyrics)** is the probability of the lyrics occurring. This is constant, so we can ignore/eliminate it.
 
-Înmulțirea multor probabilități mici (între 0 și 1) poate duce la erori de calcul (underflow numeric). Pentru a evita acest lucru, implementarea calculează suma logaritmilor probabilităților:
+## The "Naive" Assumption
+
+The model makes a "naive" assumption of conditional independence: it considers that the presence of each word in the lyrics is independent of the presence of the other words. Thus, the probability that a song belongs to a certain music genre is based on the probability of each word belonging to it.
 
 $$
-\log(P(\text{Versuri} | \text{Gen})) = \log(P(\text{Gen})\prod_{i=1}^{n} P(\text{cuvânt}_i | \text{Gen}))
+P(\text{Lyrics} | \text{Genre}) = P(\text{Genre})\prod_{i=1}^{n} P(\text{word}_i | \text{Genre})
+$$
+
+## Logarithmic Probabilities
+
+Multiplying many small probabilities (between 0 and 1) can lead to calculation errors (numeric underflow). To avoid this, the implementation calculates the sum of the logarithms of the probabilities:
+
+$$
+\log(P(\text{Lyrics} | \text{Genre})) = \log(P(\text{Genre})\prod_{i=1}^{n} P(\text{word}_i | \text{Genre}))
 $$
 
 $$
-\log(P(\text{Gen} | \text{Versuri})) = \log(P(\text{Gen})) + \sum_{i=1}^{n} \log(P(\text{cuvânt}_i | \text{Gen}))
+\log(P(\text{Genre} | \text{Lyrics})) = \log(P(\text{Genre})) + \sum_{i=1}^{n} \log(P(\text{word}_i | \text{Genre}))
 $$
 
-Genul cu cea mai mare probabilitate logaritmică este ales ca predicție finală.
+The genre with the highest logarithmic probability is chosen as the final prediction.
 
-## Netezirea Laplace (Aditivă)
+## Laplace (Additive) Smoothing
 
-Pentru a gestiona cuvintele care apar în setul de test, dar sunt limitate la anumite genuri (ceea ce ar duce la o probabilitate de zero pentru celelalte genuri), se aplică netezirea Laplace. O valoare mică, **alpha** (setată în cod la 1.0), se adaugă la numărătorul fiecărui cuvânt, prevenind probabilitățile nule.
+To handle words that appear in the test set but are restricted to certain genres (which would result in a zero probability for the other genres), Laplace smoothing is applied. A small value, **alpha** (set to 1.0 in the code), is added to the numerator of each word, preventing zero probabilities.
 
-# Structura Codului și Funcțiile Principale
+# Code Structure and Main Functions
 
-Proiectul este organizat în trei fișiere Python principale:
+The project is organized into three main Python files:
 
 ## `data_processing.py`
-Acest fișier conține toate funcțiile legate de încărcarea, curățarea și preprocesarea datelor.
+This file contains all the functions related to loading, cleaning, and preprocessing the data.
 
-- **`read_csv(csv_path, cols, ...)`**: Citește coloanele specificate (`"Genre"`, `"Lyrics"`) din fișierul CSV într-un DataFrame pandas și elimină rândurile cu date lipsă.
-- **`tokens_text(text, ...)`**: Funcția centrală de procesare a textului. Primește textul brut (versurile) și realizează următoarele operațiuni:
-  1. Elimină caracterele speciale și conținutul din parantezele drepte (ex: "`[Chorus]`") specifice textelor provenite de pe site-ul Genius.
-  2. Convertește textul la litere mici.
-  3. Elimină punctuația.
-  4. Elimină cuvintele comune din limba engleză ("stop words").
-  5. Împarte textul curățat într-o listă de cuvinte (token-uri).
-- **`preprocess_data(data, column, ...)`**: Aplică funcția `tokens_text` pe coloana de versuri a DataFrame-ului și stochează rezultatul într-o nouă coloană, numită `"Tokens"`.
+- **`read_csv(csv_path, cols, ...)`**: Reads the specified columns (`"Genre"`, `"Lyrics"`) from the CSV file into a pandas DataFrame and drops rows with missing data.
+- **`tokens_text(text, ...)`**: The core text processing function. It takes the raw text (lyrics) and performs the following operations:
+  1. Removes special characters and content inside square brackets (e.g., "`[Chorus]`"), which are specific to lyrics from the Genius website.
+  2. Converts the text to lowercase.
+  3. Removes punctuation.
+  4. Removes common English words ("stop words").
+  5. Splits the cleaned text into a list of words (tokens).
+- **`preprocess_data(data, column, ...)`**: Applies the `tokens_text` function to the lyrics column of the DataFrame and stores the result in a new column named `"Tokens"`.
 
 ## `MultinomialNBayes.py`
-Acest modul conține implementarea clasificatorului.
-- **clasa `MultinomialNaiveBayes`**:
-  - **`__init__(self)`**: Inițializează parametrii modelului: probabilitățile `a_priori`, `vocabularul`, probabilitățile `condiționate` și factorul de netezire `alpha`.
-  - **`train(self, x_train, y_train)`**: Ordonează procesul de antrenare prin apelarea următoarelor două metode:
-    - **`calc_a_priori(self, y_train)`**: Calculează probabilitatea a priori $P(\text{Gen})$ pentru fiecare gen.
-    - **`calc_cond_voc(self, x_train, y_train)`**: Construiește vocabularul și calculează probabilitatea condiționată $P(\text{cuvânt} | \text{Gen})$.
-  - **`predict(self, x_test)`**: Primește o listă de versuri noi și prezice genul pentru fiecare.
-  - **`evaluate(self, x_test, y_test)`**: Măsoară performanța modelului comparând predicțiile sale cu etichetele reale.
+This module contains the implementation of the classifier.
+- **`MultinomialNaiveBayes` class**:
+  - **`__init__(self)`**: Initializes the model parameters: the `prior` probabilities (a_priori), the `vocabulary`, the `conditional` probabilities, and the smoothing factor `alpha`.
+  - **`train(self, x_train, y_train)`**: Orchestrates the training process by calling the following two methods:
+    - **`calc_a_priori(self, y_train)`**: Calculates the prior probability $P(\text{Genre})$ for each genre.
+    - **`calc_cond_voc(self, x_train, y_train)`**: Builds the vocabulary and calculates the conditional probability $P(\text{word} | \text{Genre})$.
+  - **`predict(self, x_test)`**: Takes a list of new lyrics and predicts the genre for each one.
+  - **`evaluate(self, x_test, y_test)`**: Measures the model's performance by comparing its predictions with the actual labels.
 
 ## `main.py`
-Acesta este scriptul principal care leagă toate componentele.
-- **Încărcarea și Preprocesarea Datelor**: Citește fișierul `Light_Music_Dataset.csv` / `Heavy_Music_Dataset1.csv` și preprocesează versurile.
-- **Antrenarea și Evaluarea Modelului**:
-  - **Opțiunea 1** (default): Împarte setul de date într-un set de antrenament (80%) și unul de test (20%) folosind `train_test_split`.
-  - **Opțiunea 2**: Împarte setul de date într-un set de antrenament în care fiecare gen are o anumită proporție din setul original și unul de test, restul datelor rămase, folosind `create_false_imbalance(lyrics, genres, procent_per_genre)`.
-  - Inițializează, antrenează și evaluează modelul `MultinomialNaiveBayes`.
-- **`plot_confusion_from_dict_proportions(...)`**: Vizualizează rezultatele evaluării sub forma unei matrici de confuzie. (Cod generat cu ChatGPT)
-- **`start_testing()`**: Inițiază o buclă interactivă în care utilizatorul poate introduce versuri pentru a obține o predicție.
+This is the main script that ties all components together.
+- **Data Loading and Preprocessing**: Reads the `Light_Music_Dataset.csv` / `Heavy_Music_Dataset1.csv` file and preprocesses the lyrics.
+- **Model Training and Evaluation**:
+  - **Option 1** (default): Splits the dataset into a training set (80%) and a test set (20%) using `train_test_split`.
+  - **Option 2**: Splits the dataset into a training set where each genre has a specific proportion from the original set, and a test set containing the remaining data, using `create_false_imbalance(lyrics, genres, procent_per_genre)`.
+  - Initializes, trains, and evaluates the `MultinomialNaiveBayes` model.
+- **`plot_confusion_from_dict_proportions(...)`**: Visualizes the evaluation results as a confusion matrix. (Code generated with ChatGPT)
+- **`start_testing()`**: Starts an interactive loop where the user can input lyrics to get a prediction.
 
-# Instrucțiuni de Utilizare
-1.  **Cerințe preliminare**: Asigurați-vă că aveți Python instalat.
-2.  **Setul de date**: Fișierul folosit `Light_Music_Dataset.csv` sau `Heavy_Music_Dataset1.csv` trebuie să se afle într-un folder numit `Music-Datasets` (sursele fișierelor de date pot fi găsite la începutul fișierului `main.py` pentru a putea fi descărcate).
-3.  **Instalarea Dependințelor**: Deschideți un terminal și rulați următoarea comandă:
+# Usage Instructions
+1. **Prerequisites**: Ensure you have Python installed.
+2. **Dataset**: The file used, `Light_Music_Dataset.csv` or `Heavy_Music_Dataset1.csv`, must be located in a folder named `Music-Datasets` (sources for downloading the data files can be found at the beginning of the `main.py` file).
+3. **Install Dependencies**: Open a terminal and run the following command:
     ```bash
     pip install -r requirements.txt
     ```
-4.  **Rularea Proiectului**: Executați scriptul principal din terminal:
+4. **Run the Project**: Execute the main script from the terminal:
     ```bash
     python main.py
     ```
-Scriptul va antrena și evalua mai întâi modelul, afișând rezultatele. Ulterior, va aștepta ca utilizatorul să introducă text pentru clasificare.
+The script will first train and evaluate the model, displaying the results. Afterward, it will wait for the user to input text for classification.
 
-# Exemplu de Utilizare
-După rularea comenzii `python main.py`, procesul de antrenare și evaluare va fi afișat în terminal. La final, va porni prompt-ul interactiv.
+# Usage Example
+After running the `python main.py` command, the training and evaluation process will be displayed in the terminal. Finally, the interactive prompt will start.
 
-## Output în Terminal
+## Terminal Output
 ```shell
 Details about Genre:
 Metal :  100000
@@ -124,10 +126,10 @@ Evaluate the model accuracy on 99995 datas:
 ```
 <img width="1536" height="754" alt="Heavy_Dataset_no_imbalance" src="https://github.com/user-attachments/assets/0cf5fd97-4de6-45c9-a767-916d736a3457" />
 
-*Graficul matricii de confuzie*
+*Confusion Matrix Plot*
 
-## Sesiune Interactivă
-Programul va aștepta acum inputul dumneavoastră pe o singură linie (se poate folosi programul `oneLineLyrics.cpp`). Pentru a ieși, tastați `EOF` și apăsați Enter.
+## Interactive Session
+The program will now wait for your input on a single line (you can use the `oneLineLyrics.cpp` program). To exit, type `EOF` and press Enter.
 ```shell
 > Darkness, imprisoning me All that I see, absolute horror
 metal
@@ -138,6 +140,6 @@ country
 > EOF
 ```
 
-# Referințe Bibliografice
+# References
 - https://www.geeksforgeeks.org/machine-learning/naive-bayes-scratch-implementation-using-python/
-- LLM-uri precum ChatGPT si Gemini
+- LLMs like ChatGPT and Gemini
